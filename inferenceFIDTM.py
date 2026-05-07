@@ -303,41 +303,39 @@ def get_prediction(file):
 
 
 
+        # --- Memory Saver Optimization ---
         frame = cv2.imread(file)
-        print(frame.shape)
-
-        scale_factor = 0.5
-        frame = cv2.resize(frame, (0, 0), fx=scale_factor, fy=scale_factor)
+        h, w = frame.shape[:2]
+        
+        # Adaptive scaling: Limit max dimension to 800px
+        max_dim = 800
+        if max(h, w) > max_dim:
+            scale = max_dim / max(h, w)
+            frame = cv2.resize(frame, (0, 0), fx=scale, fy=scale)
+        else:
+            frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
+            
         ori_img = frame.copy()
-
-        frame = frame.copy()
-        image = tensor_transform(frame)
-        image = img_transform(image).unsqueeze(0)
-        image = image.to(device)
+        image = tensor_transform(frame).unsqueeze(0).to(device)
+        image = img_transform(image[0]).unsqueeze(0)
 
         with torch.no_grad():
             d6 = model(image)
-
             count, pred_kpoint = counting(d6)
-            point_map = generate_point_map(pred_kpoint)
-            box_img = generate_bounding_boxes(pred_kpoint, frame)
             show_fidt = show_fidt_func(d6.data.cpu().numpy())
-            #res = np.hstack((ori_img, show_fidt, point_map, box_img))
-            res1 = np.hstack((ori_img, show_fidt))
-            res2 = np.hstack((box_img, point_map))
-            res = np.vstack((res1, res2))
-         
-            #cv2.putText(res, "Count:" + str(count), (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            density = './density_map.jpg' 
-            cv2.imwrite('./demo.jpg', res)
-            print("pred:%.3f" % count)
-        
+            
             x = random.randint(1,100000) 
             density = 'static/density_map'+str(x)+'.jpg' 
-            plt.imsave(density,show_fidt) 
-        
-        
-            return count , density
+            plt.imsave(density, show_fidt) 
+            
+            # Cleanup
+            del d6, image, frame
+            import gc
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                
+            return count, density
 
     
     

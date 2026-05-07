@@ -260,15 +260,29 @@ def get_prediction(file):
 
 
 
-        img = transform(Image.open(file).convert('RGB'))
+        # --- Memory Saver Optimization ---
+        img_raw = Image.open(file).convert('RGB')
+        # Limit max dimension to 800px to save RAM
+        max_dim = 800
+        if max(img_raw.size) > max_dim:
+            ratio = max_dim / max(img_raw.size)
+            new_size = (int(img_raw.size[0] * ratio), int(img_raw.size[1] * ratio))
+            img_raw = img_raw.resize(new_size, Image.BILINEAR)
+        
+        img = transform(img_raw)
         img = img.cpu()
-        output = model(img.unsqueeze(0))
-        prediction = int(output.detach().cpu().sum().numpy())
+        
+        with torch.no_grad():
+            output = model(img.unsqueeze(0))
+            prediction = int(output.detach().cpu().sum().numpy())
+            
         x = random.randint(1,100000) 
         density = 'static/density_map'+str(x)+'.jpg' 
         plt.imsave(density, output.detach().cpu().numpy()[0][0]) 
-    
-    
-    
-    
-    return prediction, density
+        
+        # Cleanup
+        del img, output
+        import gc
+        gc.collect()
+        
+        return prediction, density
