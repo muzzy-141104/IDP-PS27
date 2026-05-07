@@ -37,6 +37,8 @@ from pathlib import Path
 import random
 import torch
 import numpy as np
+import cv2
+from utils.datasets import letterbox
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
 if str(ROOT) not in sys.path:
@@ -44,11 +46,147 @@ if str(ROOT) not in sys.path:
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
 from models.common import DetectMultiBackend
-from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadScreenshots, LoadStreams
-from utils.general import (LOGGER, Profile, check_file, check_img_size, check_imshow, check_requirements, colorstr, cv2,
-                           increment_path, non_max_suppression, print_args, scale_boxes, strip_optimizer, xyxy2xywh)
-from utils.plots import Annotator, colors, save_one_box
-from utils.torch_utils import select_device, smart_inference_mode
+from utils.general import non_max_suppression as real_nms
+
+# Stubs for missing utilities
+IMG_FORMATS = ['jpg', 'jpeg', 'png', 'bmp', 'webp', 'mp4', 'avi', 'mov']
+VID_FORMATS = ['mp4', 'avi', 'mov', 'mkv']
+class LoadImages:
+    def __init__(self, path, img_size=640, stride=32, auto=True, vid_stride=1):
+        self.path = path
+        self.img_size = img_size
+        self.stride = stride
+        self.auto = auto
+        self.vid_stride = vid_stride
+        self.mode = 'image'  # default mode
+        self.count = 0
+        # Check if path is a video
+        if isinstance(path, str) and path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+            self.cap = cv2.VideoCapture(path)
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            self.mode = 'video'
+        else:
+            self.cap = None
+    def __iter__(self):
+        return self
+    def __next__(self):
+        if self.cap is not None:
+            # Video mode
+            ret, frame = self.cap.read()
+            if not ret:
+                self.cap.release()
+                raise StopIteration
+            self.count += 1
+        else:
+            # Image mode - single image
+            if self.count > 0:
+                raise StopIteration
+            frame = cv2.imread(self.path)
+            if frame is None:
+                raise StopIteration
+            self.count += 1
+        # Preprocess: letterbox resize then HWC->CHW
+        img = letterbox(frame, self.img_size, stride=self.stride, auto=self.auto)[0]
+        img = img.transpose(2, 0, 1)[::-1]  # HWC to CHW, BGR to RGB
+        img = np.ascontiguousarray(img)
+        return self.path, img, frame, self.cap, ''
+    def release(self):
+        if self.cap is not None:
+            self.cap.release()
+class LoadScreenshots:
+    def __init__(self, path, img_size=640):
+        self.path = path
+        self.img_size = img_size
+class LoadStreams:
+    def __init__(self, sources):
+        self.sources = sources
+
+import logging
+LOGGER = logging.getLogger(__name__)
+class Profile:
+    def __init__(self):
+        self.dt = 0.0
+        self.t = 0.0
+    def __enter__(self):
+        return self
+    def __exit__(self, *args):
+        pass
+
+def check_file(file):
+    return file
+def check_img_size(img_size, s=32):
+    return img_size
+def check_imshow(**kwargs):
+    return True
+def check_requirements(requirements='requirements.txt', exclude=()):
+    pass
+def colorstr(*input):
+    return ''
+def increment_path(path, exist_ok=False, sep=''):
+    return path
+def scale_boxes(img1_shape, coords, img0_shape, ratio_pad=None):
+    """Rescale coords (xyxy) from img1_shape to img0_shape."""
+    if ratio_pad is None:
+        gain = min(img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1])
+        pad = ((img1_shape[1] - img0_shape[1] * gain) / 2, (img1_shape[0] - img0_shape[0] * gain) / 2)
+    else:
+        gain = ratio_pad[0][0]
+        pad = ratio_pad[1]
+    coords[:, [0, 2]] -= pad[0]  # x padding
+    coords[:, [1, 3]] -= pad[1]  # y padding
+    coords[:, :4] /= gain
+    # Clip to image bounds
+    coords[:, 0].clamp_(0, img0_shape[1])  # x1
+    coords[:, 1].clamp_(0, img0_shape[0])  # y1
+    coords[:, 2].clamp_(0, img0_shape[1])  # x2
+    coords[:, 3].clamp_(0, img0_shape[0])  # y2
+    return coords
+def strip_optimizer(f='best.pt', s=''):
+    pass
+def xyxy2xywh(x):
+    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
+    y[:, 0] = (x[:, 0] + x[:, 2]) / 2
+    y[:, 1] = (x[:, 1] + x[:, 3]) / 2
+    y[:, 2] = x[:, 2] - x[:, 0]
+    y[:, 3] = x[:, 3] - x[:, 1]
+    return y
+def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,
+                        labels=(), max_det=1000):
+    return real_nms(prediction, conf_thres, iou_thres)
+
+# Stub for Annotator
+class Annotator:
+    def __init__(self, img, line_width=None, font_size=None, example=None):
+        self.im = img.copy()
+        self.line_width = line_width or 2
+    def box_label(self, box, label=None, color=(0, 255, 0)):
+        # Draw bounding box on the image
+        p1 = (int(box[0]), int(box[1]))
+        p2 = (int(box[2]), int(box[3]))
+        cv2.rectangle(self.im, p1, p2, color, thickness=self.line_width)
+        if label:
+            tf = max(self.line_width - 1, 1)  # font thickness
+            w, h = cv2.getTextSize(label, 0, fontScale=self.line_width / 3, thickness=tf)[0]
+            outside = p1[1] - h >= 3
+            p2_label = (p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3)
+            cv2.rectangle(self.im, p1, p2_label, color, -1, cv2.LINE_AA)  # filled
+            cv2.putText(self.im, label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
+                        0, self.line_width / 3, (255, 255, 255), thickness=tf, lineType=cv2.LINE_AA)
+    def result(self):
+        return self.im
+
+def colors(c, validate=True):
+    return (0, 255, 0)
+
+def save_one_box(x, im, file='crop.jpg', gain=1.05, pad=10):
+    return im
+
+from utils.torch_utils import select_device
+
+def smart_inference_mode():
+    def decorator(fn):
+        return fn
+    return decorator
 
 
 @smart_inference_mode()
@@ -56,7 +194,7 @@ def get_prediction_yolo(
         weights=ROOT / 'yolo-crowd.pt',  # model path or triton URL
         source=ROOT / 'data/images',  # file/dir/URL/glob/screen/0(webcam)
         data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
-        imgsz=(640, 640),  # inference size (height, width)
+        imgsz=640,  # inference size (height, width) - use int, not tuple
         conf_thres=0.25,  # confidence threshold
         iou_thres=0.45,  # NMS IOU threshold
         max_det=1000,  # maximum detections per image
@@ -98,7 +236,8 @@ def get_prediction_yolo(
     device = select_device(device)
     model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
     stride, names, pt = model.stride, model.names, model.pt
-    imgsz = check_img_size(imgsz, s=stride)  # check image size
+    imgsz = check_img_size(imgsz, s=stride)  # check image size (returns int)
+    imgsz = (imgsz, imgsz)  # convert to tuple for warmup
 
     # Dataloader
     bs = 1  # batch_size
@@ -109,7 +248,7 @@ def get_prediction_yolo(
     elif screenshot:
         dataset = LoadScreenshots(source, img_size=imgsz, stride=stride, auto=pt)
     else:
-        dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
+        dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=False, vid_stride=vid_stride)
     vid_path, vid_writer = [None] * bs, [None] * bs
 
     # Run inference
@@ -130,7 +269,7 @@ def get_prediction_yolo(
 
         # NMS
         with dt[2]:
-            pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+            pred = non_max_suppression(pred[0], conf_thres, iou_thres, classes, agnostic_nms)
 
         # Second-stage classifier (optional)
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
@@ -177,7 +316,7 @@ def get_prediction_yolo(
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
             # Stream results
-            im0 = annotator.result()
+            im0 = annotator.result()  # get annotated image
             x = random.randint(1,100000)
             density = 'static/density_map'+str(x)+'.jpg' 
             if torch.is_tensor(n):
@@ -186,16 +325,7 @@ def get_prediction_yolo(
             	prediction = n
             cv2.putText(im0, 'Number of people=' + str(prediction), (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)	
             cv2.imwrite(density,im0)
-            #cv2.imshow('l' , np.array(im0, dtype = np.uint8 ) )
-            cv2.waitKey(25)
-            
-            if view_img:
-                if platform.system() == 'Linux' and p not in windows:
-                    windows.append(p)
-                    cv2.namedWindow(str(p), cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
-                    cv2.resizeWindow(str(p), im0.shape[1], im0.shape[0])
-                cv2.imshow(str(p), im0)
-                cv2.waitKey(1)  # 1 millisecond
+
 
             # Save results (image with detections)
             if save_img:

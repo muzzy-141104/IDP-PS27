@@ -14,13 +14,64 @@ if str(ROOT) not in sys.path:
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
 from models.common import DetectMultiBackend
-from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadScreenshots, LoadStreams
-from utils.general import (LOGGER, Profile, check_file, check_img_size, check_imshow, check_requirements, colorstr, cv2,
-                           increment_path, non_max_suppression, print_args, scale_boxes, strip_optimizer, xyxy2xywh)
-from utils.plots import Annotator, colors, save_one_box
-from utils.torch_utils import select_device, smart_inference_mode
+# from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadScreenshots, LoadStreams
+from utils.general import (check_file, check_img_size, check_imshow, check_requirements, colorstr, cv2,
+                           increment_path, non_max_suppression as real_nms, strip_optimizer, xyxy2xywh)
 
-import contextlib
+# Stub for scale_coords/scale_boxes
+def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
+    return coords
+
+def scale_boxes(img1_shape, coords, img0_shape, ratio_pad=None):
+    """Rescale coords (xyxy) from img1_shape to img0_shape."""
+    if ratio_pad is None:
+        gain = min(img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1])
+        pad = ((img1_shape[1] - img0_shape[1] * gain) / 2, (img1_shape[0] - img0_shape[0] * gain) / 2)
+    else:
+        gain = ratio_pad[0][0]
+        pad = ratio_pad[1]
+    coords[:, [0, 2]] -= pad[0]  # x padding
+    coords[:, [1, 3]] -= pad[1]  # y padding
+    coords[:, :4] /= gain
+    # Clip to image bounds
+    coords[:, 0].clamp_(0, img0_shape[1])  # x1
+    coords[:, 1].clamp_(0, img0_shape[0])  # y1
+    coords[:, 2].clamp_(0, img0_shape[1])  # x2
+    coords[:, 3].clamp_(0, img0_shape[0])  # y2
+    return coords
+
+# Stub for Annotator
+class Annotator:
+    def __init__(self, img, line_width=None, font_size=None, example=None):
+        self.img = img
+        self.line_width = line_width
+    def box_label(self, box, label=None, color=None):
+        pass
+    def result(self):
+        return self.img
+    def result(self):
+        return self.img
+
+# Stub for colors
+def colors(c, validate=True):
+    return (0, 255, 0)  # green
+
+# Define stubs for missing utilities
+LOGGER = None
+class Profile:
+    def __init__(self):
+        self.dt = [0, 0, 0]
+    def __enter__(self):
+        return self
+    def __exit__(self, *args):
+        pass
+from utils.torch_utils import select_device
+
+# smart_inference_mode stub
+def smart_inference_mode():
+    def decorator(fn):
+        return fn
+    return decorator
 import glob
 import hashlib
 import json
@@ -45,12 +96,51 @@ from PIL import ExifTags, Image, ImageOps
 from torch.utils.data import DataLoader, Dataset, dataloader, distributed
 from tqdm import tqdm
 
-from utils.augmentations import (Albumentations, augment_hsv, classify_albumentations, classify_transforms, copy_paste,
-                                 letterbox, mixup, random_perspective)
-from utils.general import (DATASETS_DIR, LOGGER, NUM_THREADS, TQDM_BAR_FORMAT, check_dataset, check_requirements,
-                           check_yaml, clean_str, cv2, is_colab, is_kaggle, segments2boxes, unzip_file, xyn2xy,
-                           xywh2xyxy, xywhn2xyxy, xyxy2xywhn)
-from utils.torch_utils import torch_distributed_zero_first
+from utils.datasets import letterbox
+from utils.general import cv2
+from numpy import random
+
+def segments2boxes(segments):
+    return np.zeros((len(segments), 4))
+
+def xyn2xy(x, w=640, h=640, padw=0, padh=0):
+    return x
+
+def xywh2xyxy(x):
+    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
+    y[:, 0] = x[:, 0] - x[:, 2] / 2
+    y[:, 1] = x[:, 1] - x[:, 3] / 2
+    y[:, 2] = x[:, 0] + x[:, 2] / 2
+    y[:, 3] = x[:, 1] + x[:, 3] / 2
+    return y
+
+def xywhn2xyxy(x, w=640, h=640, padw=0, padh=0):
+    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
+    y[:, 0] = x[:, 0] * w + padw
+    y[:, 1] = x[:, 1] * h + padh
+    y[:, 2] = x[:, 2] * w + padw
+    y[:, 3] = x[:, 3] * h + padh
+    return y
+
+def xyxy2xywhn(x, w=640, h=640, padw=0, padh=0):
+    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
+    y[:, 0] = (x[:, 0] - padw) / w
+    y[:, 1] = (x[:, 1] - padh) / h
+    y[:, 2] = (x[:, 2] - padw) / w
+    y[:, 3] = (x[:, 3] - padh) / h
+    return y
+
+def xyxy2xywh(x):
+    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
+    y[:, 0] = (x[:, 0] + x[:, 2]) / 2
+    y[:, 1] = (x[:, 1] + x[:, 3]) / 2
+    y[:, 2] = x[:, 2] - x[:, 0]
+    y[:, 3] = x[:, 3] - x[:, 1]
+    return y
+
+def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,
+                        labels=(), max_det=1000):
+    return real_nms(prediction, conf_thres, iou_thres)
 
 device = select_device('')
 weights='./yolo-crowd.pt'
@@ -100,7 +190,10 @@ class VideoCamera(object):
     
     def __del__(self):
         self.video.release()
-    
+
+    def release(self):
+        self.video.release()
+
     def get_frame(self):
         
         cap =self.video 
@@ -125,8 +218,9 @@ class VideoCamera(object):
 
     
         
-        stride, names, pt = model.stride, model.names, model.pt
-        imgsz = check_img_size((640,640), s=stride)  # check image size
+        stride, names, pt = 32, model.names, model.pt
+        imgsz = check_img_size(640, s=stride)  # returns integer (e.g., 640)
+        imgsz = (imgsz, imgsz)  # convert to tuple for warmup and letterbox
 
         
         
@@ -154,7 +248,7 @@ class VideoCamera(object):
                 model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
                 seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
                 with dt[0]:
-                    im = letterbox(frame, 640, stride=32, auto=True)[0]  # padded resize
+                    im = letterbox(frame, 640, stride=32, auto=False)[0]  # padded resize to square
                     im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
                     im = np.ascontiguousarray(im)
                     im = torch.from_numpy(im).to(model.device)
@@ -165,11 +259,11 @@ class VideoCamera(object):
 
                     # Inference
                 with dt[1]:
-                    pred = model(im, augment=False, visualize=False)
+                    pred = model(im, augment=False)
 
                     # NMS
                 with dt[2]:
-                    pred = non_max_suppression(pred, 0.25, 0.45, None, False, max_det=1000)
+                    pred = non_max_suppression(pred[0], 0.25, 0.45, None, False, max_det=1000)
 
                     # Second-stage classifier (optional)
                     # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
@@ -193,8 +287,8 @@ class VideoCamera(object):
                             n = (det[:, 5] == c).sum()  # detections per class
                             #s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
                         for *xyxy, conf, cls in reversed(det):
-                            c = int(cls)  # integer class
-                            label = f'{names[c]} {conf:.02f}'
+                            c = int(cls.item())  # integer class
+                            label = f'{names[c]} {conf.item():.02f}'
                             annotator.box_label(xyxy, label, color=colors(c, True))
 
                                 
@@ -205,10 +299,8 @@ class VideoCamera(object):
                     else:
                         prediction = n
                     img_to_draw = cv2.resize(im0, (1500,720))
-                    cv2.putText(img_to_draw, 'Number of people=' + str(prediction), (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)	
-                    #cv2.imshow('l' , np.array(im0, dtype = np.uint8 ) )
-                    cv2.waitKey(25)
-                        
+                    cv2.putText(img_to_draw, 'Number of people=' + str(prediction), (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
                     res = img_to_draw
                     im0 = annotator.result()
                     if torch.is_tensor(n):

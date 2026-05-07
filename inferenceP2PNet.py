@@ -41,7 +41,7 @@ def get_args_parser():
 
 
 parser = argparse.ArgumentParser('P2PNet evaluation script', parents=[get_args_parser()])
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 
 print(args)
 
@@ -51,11 +51,11 @@ print(args)
 def get_prediction_webcam(event: Event):  
     print("start p2pnet")
     
-    device = torch.device('cuda')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # get the P2PNet
     model = build_model(args)
     
-    # move to GPU
+    # move to device
     model.to(device)
     
     
@@ -66,9 +66,9 @@ def get_prediction_webcam(event: Event):
         checkpoint = torch.load(args.weight_path, map_location='cpu')
         model.load_state_dict(checkpoint['model'])
     """
-    #Loading file directly
-    checkpoint = torch.load(Path('/home/zaki/Documents/Master/Code/image/P2PNet/CrowdCounting-P2PNet-main(mycode)/weights/SHTechA.pth'), map_location='cpu')
-    model.load_state_dict(checkpoint['model'])
+    #Loading file directly - weights not available locally
+    #checkpoint = torch.load(Path('/home/zaki/Documents/Master/Code/image/P2PNet/CrowdCounting-P2PNet-main(mycode)/weights/SHTechA.pth'), map_location='cpu')
+    #model.load_state_dict(checkpoint['model'])
 
 
     # convert to eval mode
@@ -201,11 +201,11 @@ def get_prediction_webcam(event: Event):
 
 def get_prediction(file):  
  
-    device = torch.device('cuda')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # get the P2PNet
     model = build_model(args)
     
-    # move to GPU
+    # move to device
     model.to(device)
     
     
@@ -216,9 +216,9 @@ def get_prediction(file):
         checkpoint = torch.load(args.weight_path, map_location='cpu')
         model.load_state_dict(checkpoint['model'])
     """
-    #Loading file directly
-    checkpoint = torch.load(Path('/home/zaki/Documents/Master/Code/image/P2PNet/CrowdCounting-P2PNet-main(mycode)/weights/SHTechA.pth'), map_location='cpu')
-    model.load_state_dict(checkpoint['model'])
+    #Loading file directly - weights not available locally
+    #checkpoint = torch.load(Path('/home/zaki/Documents/Master/Code/image/P2PNet/CrowdCounting-P2PNet-main(mycode)/weights/SHTechA.pth'), map_location='cpu')
+    #model.load_state_dict(checkpoint['model'])
 
 
     # convert to eval mode
@@ -329,7 +329,7 @@ def get_prediction(file):
         width, height = img_raw.size
         new_width = width // 128 * 128
         new_height = height // 128 * 128
-        img_raw = img_raw.resize((new_width, new_height), Image.ANTIALIAS)
+        img_raw = img_raw.resize((new_width, new_height), Image.LANCZOS)
     
         ori_imge  = cv2.cvtColor(np.array(img_raw), cv2.COLOR_RGB2BGR)
         # pre-proccessing

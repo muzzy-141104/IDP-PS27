@@ -22,6 +22,7 @@ import logging
 import nni
 from nni.utils import merge_parameter
 from config import return_args, args
+import torch
 
 warnings.filterwarnings('ignore')
 import time
@@ -140,7 +141,7 @@ model = get_seg_model()
 model = nn.DataParallel(model, device_ids=[0])
 model = model.cuda()
 
-checkpoint = torch.load('/home/zaki/Documents/Master/Code/image/2022/FIDTM/weights/model_best_nwpu.pth')
+checkpoint = torch.load('save_file/my_fidtm/model_best_nwpu.pth')
 model.load_state_dict(checkpoint['state_dict'], strict=False)
 
    

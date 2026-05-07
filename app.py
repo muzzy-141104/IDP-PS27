@@ -27,7 +27,7 @@ from werkzeug.utils import secure_filename
 from inferenceYOLO import get_prediction_yolo as get_prediction_yolo
 
 UPLOAD_FOLDER = './static/'
-ALLOWED_EXTENSIONS = set(['.jpg', '.jpeg','mp4'])
+ALLOWED_EXTENSIONS = set(['.jpg', '.jpeg', '.png', 'mp4'])
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -55,7 +55,10 @@ def upload_file():
             filtered_files = [file for file in files_in_dir if file.endswith(".jpg") or file.endswith(".jpeg") or file.endswith(".mp4") ]
             for file in filtered_files:
                 path = os.path.join(app.config['UPLOAD_FOLDER'], file)
-                os.remove(path)
+                try:
+                    os.remove(path)
+                except PermissionError:
+                    pass  # file may be in use by video stream
 
             # Upload new file
             if 'file' not in request.files:
@@ -73,16 +76,27 @@ def upload_file():
             if( file_name1.endswith(".mp4") ): 
                 return render_template('result-video.html',File=file_name1, Method=method) 
                 
-            if method == 'fidtm':
-                prediction, density = get_prediction_fidtm(file_name1)
-            elif method == 'p2pnet':
-                prediction, density = get_prediction_p2pnet(file_name1)
-            elif method == 'crnet':
-                prediction, density = get_prediction_crnet(file_name1) 
-            else :
-                prediction, density = get_prediction_yolo(weights="yolo-crowd.pt",source=file_name1)
+            try:
+                if method == 'fidtm':
+                    prediction, density = get_prediction_fidtm(file_name1)
+                elif method == 'p2pnet':
+                    prediction, density = get_prediction_p2pnet(file_name1)
+                elif method == 'csrnet':
+                    prediction, density = get_prediction_crnet(file_name1) 
+                else :
+                    prediction, density = get_prediction_yolo(weights="yolo-crowd.pt",source=file_name1)
+                
+                # Ensure density path starts with / for proper URL resolution
+                if density and not density.startswith('/'):
+                    density = '/' + density
+                    
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                prediction = "Error: " + str(e)
+                density = ""
             
-            if(  file_name1.endswith(".jpg") or file_name1.endswith(".jpeg") ):
+            if(  file_name1.endswith(".jpg") or file_name1.endswith(".jpeg") or file_name1.endswith(".png") ):
                 return render_template('result-image.html', Prediction=prediction, File=filename, Density=density , Method=method) 
             elif( file_name1.endswith(".mp4") ): 
                 return render_template('result-video.html',File=filename, Method=method) 
@@ -113,6 +127,8 @@ def upload_file():
 def gen(camera):
     while True:
         frame = camera.get_frame()
+        if frame is None:
+            break
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
 
@@ -133,7 +149,7 @@ def video_feed():
     elif method == 'p2pnet':
         return Response(gen(VideoCameraP2PNet(fileName)),        
                 mimetype='multipart/x-mixed-replace; boundary=frame') 
-    elif method == 'crnet':
+    elif method == 'csrnet':
         return Response(gen(VideoCameraCSRNet(fileName)),        
                 mimetype='multipart/x-mixed-replace; boundary=frame') 
     else :

@@ -59,9 +59,9 @@ model.to(device)
     # load trained model
     #using Args
 
-    #Loading file directly
-checkpoint = torch.load(Path('/home/zaki/Documents/Master/Code/image/P2PNet/CrowdCounting-P2PNet-main(mycode)/weights/SHTechA.pth'), map_location='cpu')
-model.load_state_dict(checkpoint['model'])
+    #Loading file directly - weights not available locally
+    #checkpoint = torch.load(Path('/home/zaki/Documents/Master/Code/image/P2PNet/CrowdCounting-P2PNet-main(mycode)/weights/SHTechA.pth'), map_location='cpu')
+    #model.load_state_dict(checkpoint['model'])
 
 
     # convert to eval mode

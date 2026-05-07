@@ -797,6 +797,69 @@ class autoShape(nn.Module):
             return Detections(imgs, y, files, t, self.names, x.shape)
 
 
+class DetectMultiBackend:
+    # YOLOv5 DetectMultiBackend wrapper for compatibility
+    def __init__(self, weights='./yolo-crowd.pt', device=None, dnn=False, data='data/coco128.yaml', fp16=False):
+        import yaml
+        from models.yolo import Model
+
+        if device is None:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = device
+        self.fp16 = fp16
+        self.stride = 32  # default stride
+        self.pt = True  # is .pt format
+
+        # Load model
+        if isinstance(weights, str) and weights.endswith('.pt'):
+            # Load from .pt file (trained model)
+            ckpt = torch.load(weights, map_location=device)
+            if 'model' in ckpt:
+                self.model = ckpt['model'].float()
+            else:
+                self.model = ckpt
+            self.model = self.model.to(device)
+            self.model.eval()
+            # Get names from model or default
+            if hasattr(self.model, 'names'):
+                self.names = self.model.names
+            else:
+                self.names = {0: 'person'}  # default for crowd counting
+        else:
+            # Load from yaml config
+            cfg = 'models/yolo_crowd.yaml' if not isinstance(weights, str) or not weights.endswith('.pt') else 'models/yolo_crowd.yaml'
+            with open(cfg, errors='ignore') as f:
+                self.yaml = yaml.safe_load(f)
+            self.model = Model(cfg, ch=3, nc=1).to(device)  # 1 class for crowd
+            self.names = {0: 'person'}
+
+        # Store stride from model if available
+        if hasattr(self.model, 'stride'):
+            self.stride = int(self.model.stride.max())
+
+    def warmup(self, imgsz=(1, 3, 640, 640)):
+        # Warmup inference
+        try:
+            im = torch.zeros(imgsz).to(self.device)
+            if self.fp16:
+                im = im.half()
+            self.model(im)
+        except Exception:
+            pass  # warmup is best-effort
+
+    def __call__(self, im, augment=False, visualize=False):
+        # Forward inference directly on the model (no autoShape wrapper)
+        return self.model(im, augment=augment, visualize=visualize)
+
+    @property
+    def dnn(self):
+        return False
+
+    @property
+    def triton(self):
+        return False
+
+
 class Detections:
     # detections class for YOLOv5 inference results
     def __init__(self, imgs, pred, files, times=None, names=None, shape=None):

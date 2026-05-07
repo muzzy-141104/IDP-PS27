@@ -45,5 +45,5 @@ parser.add_argument('--visual', type=bool, default=False,
 parser.add_argument('--video_path', type=str, default=None,
                     help='input video path ')
 
-args = parser.parse_args()
-return_args = parser.parse_args()
+args, _ = parser.parse_known_args()
+return_args, _ = parser.parse_known_args()

@@ -96,6 +96,7 @@
         <br>
   <label for="methods"  id="custom-text1">Choose a method : </label>
   <select name="method" class="custom-select"  id="method">
+    <option value="yolo">YOLO-CROWD</option>
     <option value="fidtm">FIDTM</option>
     <option value="p2pnet">P2PNet</option>
     <option value="csrnet">CSRNet</option>
@@ -134,8 +135,8 @@
                   } else {
                     // Check extensions
                     let ext = realFileBtn.value.split('.').pop();
-                    if (ext != "jpg" && ext != "jpeg" && ext != "mp4") {
-                      alert("Invalid file type: " + ext + ". File must be either .jpg or .jpeg formats  or .mp4 formats");
+                    if (ext != "jpg" && ext != "jpeg" && ext != "png" && ext != "mp4") {
+                      alert("Invalid file type: " + ext + ". File must be either .jpg, .jpeg, .png or .mp4 formats");
                       realFileBtn.value = "";
                     } else {
                       customTxt.innerHTML = "Uploaded File: " + realFileBtn.value.match(/[\/\\]([\w\d\s.\=\(\)]+)$/)[1];

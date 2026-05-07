@@ -3,6 +3,7 @@ import warnings
 
 from Networks.HR_Net.seg_hrnet import get_seg_model
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import datasets, transforms
@@ -130,13 +131,16 @@ tensor_transform = transforms.ToTensor()
 
 
 def get_prediction_webcam(event: Event):  
-    device = torch.device('cuda')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     model = get_seg_model()
-    model = nn.DataParallel(model, device_ids=[0])
-    model = model.cuda()
+    if torch.cuda.is_available():
+        model = nn.DataParallel(model, device_ids=[0])
+        model = model.cuda()
+    else:
+        model = model.to(device)
 
-    checkpoint = torch.load('/home/zaki/Documents/Master/Code/image/2022/FIDTM/weights/model_best_nwpu.pth')
+    checkpoint = torch.load('save_file/my_fidtm/model_best_nwpu.pth', map_location=device)
     model.load_state_dict(checkpoint['state_dict'], strict=False)
 
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -231,13 +235,16 @@ def gstreamer_pipeline(
 
 
 def get_prediction(file):  
-    device = torch.device('cuda')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     model = get_seg_model()
-    model = nn.DataParallel(model, device_ids=[0])
-    model = model.cuda()
+    if torch.cuda.is_available():
+        model = nn.DataParallel(model, device_ids=[0])
+        model = model.cuda()
+    else:
+        model = model.to(device)
 
-    checkpoint = torch.load('/home/zaki/Documents/Master/Code/image/2022/FIDTM/weights/model_best_nwpu.pth')
+    checkpoint = torch.load('save_file/my_fidtm/model_best_nwpu.pth', map_location=device)
     model.load_state_dict(checkpoint['state_dict'], strict=False)
 
 # set your image path here
@@ -306,9 +313,7 @@ def get_prediction(file):
         frame = frame.copy()
         image = tensor_transform(frame)
         image = img_transform(image).unsqueeze(0)
-
-
-
+        image = image.to(device)
 
         with torch.no_grad():
             d6 = model(image)
