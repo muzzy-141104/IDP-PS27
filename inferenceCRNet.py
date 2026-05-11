@@ -1,4 +1,5 @@
 import json
+import torch
 
 from commonsCRNet import get_model
 
@@ -284,5 +285,7 @@ def get_prediction(file):
         del img, output
         import gc
         gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         
         return prediction, density

@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* DRISHTI Design System                                               */
+/* ------------------------------------------------------------------ */
+
+:root {
+  /* Primary palette */
+  --drishti-bg: #0a0a0f;
+  --drishti-surface: #12121a;
+  --drishti-surface-2: #1a1a2e;
+  --drishti-border: rgba(255, 255, 255, 0.06);
+  --drishti-border-hover: rgba(255, 255, 255, 0.12);
+
+  /* Accent colours */
+  --drishti-accent: #6366f1;       /* Indigo */
+  --drishti-accent-glow: rgba(99, 102, 241, 0.25);
+  --drishti-green: #22c55e;
+  --drishti-yellow: #eab308;
+  --drishti-red: #ef4444;
+  --drishti-orange: #f97316;
+  --drishti-cyan: #06b6d4;
+
+  /* Text */
+  --drishti-text: #f0f0f5;
+  --drishti-text-muted: #8b8b9e;
+  --drishti-text-dim: #555566;
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
+
+body {
+  background: var(--drishti-bg);
+  color: var(--drishti-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ------------------------------------------------------------------ */
+/* Glassmorphism cards                                                 */
+/* ------------------------------------------------------------------ */
+
+.glass {
+  background: rgba(18, 18, 26, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--drishti-border);
+  border-radius: 16px;
+}
+
+.glass:hover {
+  border-color: var(--drishti-border-hover);
+}
+
+.glass-strong {
+  background: rgba(26, 26, 46, 0.85);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid var(--drishti-border);
+  border-radius: 20px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Gradient accents                                                    */
+/* ------------------------------------------------------------------ */
+
+.gradient-text {
+  background: linear-gradient(135deg, #6366f1 0%, #06b6d4 50%, #22c55e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, #6366f1, #06b6d4, #22c55e);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* ------------------------------------------------------------------ */
+/* Animations                                                          */
+/* ------------------------------------------------------------------ */
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px var(--drishti-accent-glow); }
+  50% { box-shadow: 0 0 40px var(--drishti-accent-glow), 0 0 60px rgba(99, 102, 241, 0.1); }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-count-up {
+  animation: count-up 0.5s ease-out;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.4s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+/* ------------------------------------------------------------------ */
+/* Alert type colours                                                  */
+/* ------------------------------------------------------------------ */
+
+.alert-warning {
+  background: rgba(234, 179, 8, 0.1);
+  border-color: rgba(234, 179, 8, 0.3);
+  color: var(--drishti-yellow);
+}
+
+.alert-critical {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--drishti-red);
+}
+
+.alert-escalated {
+  background: rgba(249, 115, 22, 0.1);
+  border-color: rgba(249, 115, 22, 0.3);
+  color: var(--drishti-orange);
+}
+
+/* ------------------------------------------------------------------ */
+/* Scrollbar                                                           */
+/* ------------------------------------------------------------------ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--drishti-text-dim);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--drishti-text-muted);
+}
+
+/* ------------------------------------------------------------------ */
+/* Utility                                                             */
+/* ------------------------------------------------------------------ */
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.live {
+  background: var(--drishti-green);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.status-dot.idle {
+  background: var(--drishti-text-dim);
+}

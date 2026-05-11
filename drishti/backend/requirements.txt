@@ -1,0 +1,9 @@
+# DRISHTI Backend — Python Dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+supabase>=2.0.0
+python-dotenv>=1.0.0
+python-multipart>=0.0.6
+
+# ML dependencies are inherited from the parent project's requirements.txt
+# (torch, torchvision, opencv-python, numpy, PIL, matplotlib, etc.)

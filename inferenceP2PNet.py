@@ -16,6 +16,7 @@ from engine import *
 from models import build_model
 import os
 import warnings
+import gc
 warnings.filterwarnings('ignore')
 
 def get_args_parser():
@@ -45,34 +46,27 @@ args, _ = parser.parse_known_args()
 
 print(args)
 
+# Global model variable for lazy loading
+_model = None
+_device = None
+
+def load_p2p_model():
+    global _model, _device
+    if _model is None:
+        _device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        _model = build_model(args)
+        _model.to(_device)
+        _model.eval()
+    return _model, _device
+
 
 
 
 def get_prediction_webcam(event: Event):  
     print("start p2pnet")
     
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # get the P2PNet
-    model = build_model(args)
-    
-    # move to device
-    model.to(device)
-    
-    
-    # load trained model
-    #using Args
-    """
-    if args.weight_path is not None:
-        checkpoint = torch.load(args.weight_path, map_location='cpu')
-        model.load_state_dict(checkpoint['model'])
-    """
-    #Loading file directly - weights not available locally
-    #checkpoint = torch.load(Path('/home/zaki/Documents/Master/Code/image/P2PNet/CrowdCounting-P2PNet-main(mycode)/weights/SHTechA.pth'), map_location='cpu')
-    #model.load_state_dict(checkpoint['model'])
-
-
     # convert to eval mode
-    model.eval()
+    model, device = load_p2p_model()
     # create the pre-processing transform
     transform = standard_transforms.Compose([
         standard_transforms.ToTensor(), 
@@ -201,12 +195,7 @@ def get_prediction_webcam(event: Event):
 
 def get_prediction(file):  
  
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # get the P2PNet
-    model = build_model(args)
-    
-    # move to device
-    model.to(device)
+    model, device = load_p2p_model()
     
     
     # load trained model
@@ -325,7 +314,15 @@ def get_prediction(file):
         # load the images
         img_raw = Image.open(file).convert('RGB')
 
-        # round the size
+        # --- Memory Saver Optimization ---
+        # Limit max dimension to 800px to save RAM/VRAM
+        max_dim = 800
+        if max(img_raw.size) > max_dim:
+            ratio = max_dim / max(img_raw.size)
+            new_size = (int(img_raw.size[0] * ratio), int(img_raw.size[1] * ratio))
+            img_raw = img_raw.resize(new_size, Image.BILINEAR)
+
+        # round the size to multiples of 128 (P2PNet requirement)
         width, height = img_raw.size
         new_width = width // 128 * 128
         new_height = height // 128 * 128
@@ -383,6 +380,12 @@ def get_prediction(file):
     
         cv2.imwrite(density, img_to_draw)
     
+        # Cleanup memory
+        del samples, outputs, img_raw, img_to_draw
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         return predict_cnt , density
  
  

@@ -20,10 +20,32 @@ from config import return_args, args
 
 warnings.filterwarnings('ignore')
 import time
+import random
+import numpy as np
+import scipy.spatial
 
 logger = logging.getLogger('mnist_AutoML')
 
 print(args)
+
+# Global model variable for lazy loading
+_model = None
+_device = None
+
+def load_fidtm_model():
+    global _model, _device
+    if _model is None:
+        _device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        _model = get_seg_model()
+        if torch.cuda.is_available():
+            _model = nn.DataParallel(_model, device_ids=[0])
+            _model = _model.cuda()
+        else:
+            _model = _model.to(_device)
+        checkpoint = torch.load('save_file/my_fidtm/model_best_nwpu.pth', map_location=_device)
+        _model.load_state_dict(checkpoint['state_dict'], strict=False)
+        _model.eval()
+    return _model, _device
 
 
 
@@ -131,17 +153,7 @@ tensor_transform = transforms.ToTensor()
 
 
 def get_prediction_webcam(event: Event):  
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    model = get_seg_model()
-    if torch.cuda.is_available():
-        model = nn.DataParallel(model, device_ids=[0])
-        model = model.cuda()
-    else:
-        model = model.to(device)
-
-    checkpoint = torch.load('save_file/my_fidtm/model_best_nwpu.pth', map_location=device)
-    model.load_state_dict(checkpoint['state_dict'], strict=False)
+    model, device = load_fidtm_model()
 
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     #fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
@@ -235,17 +247,7 @@ def gstreamer_pipeline(
 
 
 def get_prediction(file):  
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    model = get_seg_model()
-    if torch.cuda.is_available():
-        model = nn.DataParallel(model, device_ids=[0])
-        model = model.cuda()
-    else:
-        model = model.to(device)
-
-    checkpoint = torch.load('save_file/my_fidtm/model_best_nwpu.pth', map_location=device)
-    model.load_state_dict(checkpoint['state_dict'], strict=False)
+    model, device = load_fidtm_model()
 
 # set your image path here
 
@@ -322,6 +324,7 @@ def get_prediction(file):
         with torch.no_grad():
             d6 = model(image)
             count, pred_kpoint = counting(d6)
+            print(f"FIDTM Count: {count}")
             show_fidt = show_fidt_func(d6.data.cpu().numpy())
             
             x = random.randint(1,100000) 

@@ -30,6 +30,7 @@ Usage - formats:
 
 import argparse
 import os
+import gc
 import platform
 import sys
 from pathlib import Path
@@ -189,6 +190,17 @@ def smart_inference_mode():
     return decorator
 
 
+# Global model variable for lazy loading
+_model = None
+_device = None
+
+def load_yolo_model(weights, device_str, dnn, data, half):
+    global _model, _device
+    if _model is None:
+        _device = select_device(device_str)
+        _model = DetectMultiBackend(weights, device=_device, dnn=dnn, data=data, fp16=half)
+    return _model, _device
+
 @smart_inference_mode()
 def get_prediction_yolo(
         weights=ROOT / 'yolo-crowd.pt',  # model path or triton URL
@@ -233,8 +245,7 @@ def get_prediction_yolo(
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
     # Load model
-    device = select_device(device)
-    model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
+    model, device = load_yolo_model(weights, device, dnn, data, half)
     stride, names, pt = model.stride, model.names, model.pt
     imgsz = check_img_size(imgsz, s=stride)  # check image size (returns int)
     imgsz = (imgsz, imgsz)  # convert to tuple for warmup
@@ -360,6 +371,13 @@ def get_prediction_yolo(
         strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
     #cv2.imshow(density)
     print("DENSITY IS ---------------- " + density)
+
+    # Cleanup memory
+    del model, dataset
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     return prediction, density
 
 
