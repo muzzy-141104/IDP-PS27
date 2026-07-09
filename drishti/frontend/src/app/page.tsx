@@ -6,10 +6,13 @@ import MediaUpload from '@/components/MediaUpload'
 import AlertConsole from '@/components/AlertConsole'
 import ModelSelector from '@/components/ModelSelector'
 import StatCard from '@/components/StatCard'
+import CameraFeed from '@/components/CameraFeed'
 import { API_URL, type CountEvent } from '@/lib/supabase'
 
 export default function DashboardPage() {
   const [model, setModel] = useState('yolo')
+  const [mode, setMode] = useState<'upload' | 'stream'>('upload')
+  const [streamUrl, setStreamUrl] = useState('http://192.168.137.253:5000/video_feed')
   const [count, setCount] = useState(0)
   const [threshold, setThreshold] = useState(500)
   const [trend, setTrend] = useState<'up' | 'down' | 'stable'>('stable')
@@ -38,7 +41,9 @@ export default function DashboardPage() {
           setCount(newCount)
           setThreshold(data.threshold ?? 500)
 
-          setTotalToday(prev => prev + 1)
+          if ((data as any).source_type !== 'stream') {
+            setTotalToday(prev => prev + 1)
+          }
           setMaxToday(prev => Math.max(prev, newCount))
           if (data.alert_type) setAlertCount(prev => prev + 1)
         } catch {}
@@ -119,8 +124,52 @@ export default function DashboardPage() {
         </div>
 
         {/* Center — Media Upload & Analysis */}
-        <div className="col-span-6">
-          <MediaUpload model={model} onResult={handleResult} />
+        <div className="col-span-6 flex flex-col gap-4">
+          <div className="glass p-4 flex items-center justify-between flex-shrink-0">
+            <span className="text-[10px] uppercase tracking-widest text-[var(--drishti-text-muted)] font-medium">
+              Source Mode
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMode('upload')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  mode === 'upload' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'bg-white/5 text-[var(--drishti-text-muted)] border border-transparent hover:bg-white/10'
+                }`}
+              >
+                Upload Media
+              </button>
+              <button
+                onClick={() => setMode('stream')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  mode === 'stream' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'bg-white/5 text-[var(--drishti-text-muted)] border border-transparent hover:bg-white/10'
+                }`}
+              >
+                Live Stream
+              </button>
+            </div>
+          </div>
+
+          {mode === 'stream' ? (
+            <div className="glass p-4 flex flex-col gap-4 flex-1 min-h-0">
+              <div className="flex-shrink-0">
+                <label className="text-xs text-[var(--drishti-text-muted)] mb-1 block">Stream URL</label>
+                <input 
+                  type="text" 
+                  value={streamUrl}
+                  onChange={(e) => setStreamUrl(e.target.value)}
+                  className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors"
+                  placeholder="e.g., http://192.168.1.100:5000/video_feed"
+                />
+              </div>
+              <div className="flex-1 min-h-0 relative">
+                 <CameraFeed model={model} source={streamUrl} />
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 min-h-0">
+              <MediaUpload model={model} threshold={threshold} onResult={handleResult} />
+            </div>
+          )}
         </div>
 
         {/* Right — Alert console */}

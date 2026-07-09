@@ -20,7 +20,19 @@ function HeatmapContent() {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [originalLoaded, setOriginalLoaded] = useState(false)
   const [showOriginal, setShowOriginal] = useState(false)
+  const [threshold, setThreshold] = useState(500)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/settings/threshold`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && typeof data.threshold === 'number') {
+          setThreshold(data.threshold)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const activePath = showOriginal ? (original || src) : src
   const imageUrl = activePath
@@ -33,9 +45,9 @@ function HeatmapContent() {
   const countNum = count ? parseInt(count) : null
   const severity =
     countNum !== null
-      ? countNum > 750
+      ? countNum > threshold * 1.5
         ? 'critical'
-        : countNum > 500
+        : countNum > threshold
         ? 'warning'
         : 'normal'
       : null

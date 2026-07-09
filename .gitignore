@@ -121,12 +121,16 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Node
+node_modules/
 
 # Spyder project settings
 .spyderproject
@@ -177,8 +181,7 @@ evaluation_results/
 logs/
 
 # Generated density maps & uploaded files
-static/density_map*.jpg
-static/*.mp4
+static/
 demo.avi
 
 # OS files

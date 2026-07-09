@@ -78,6 +78,7 @@ def insert_alert(
     alert_type: str,
     threshold_value: int,
     count_value: int,
+    sms_dispatch_id: Optional[str] = None,
 ) -> dict[str, Any]:
     row = {
         "alert_type": alert_type,
@@ -87,6 +88,8 @@ def insert_alert(
     }
     if count_log_id:
         row["count_log_id"] = count_log_id
+    if sms_dispatch_id:
+        row["sms_dispatch_id"] = sms_dispatch_id
     resp = get_client().table("alerts").insert(row).execute()
     return resp.data[0] if resp.data else row
 
@@ -139,3 +142,32 @@ def upsert_daily_analytics(
         .execute()
     )
     return resp.data[0] if resp.data else row
+
+# ---------------------------------------------------------------------------
+# Storage helpers
+# ---------------------------------------------------------------------------
+
+def upload_to_storage(file_path: str, bucket_name: str = "drishti-media") -> Optional[str]:
+    """Uploads a local file to Supabase Storage and returns the public URL."""
+    client = get_client()
+    file_name = os.path.basename(file_path)
+    
+    # We prefix with a timestamp to avoid overwriting files with the same name
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    destination_path = f"{timestamp}_{file_name}"
+    
+    try:
+        with open(file_path, 'rb') as f:
+            # Upload file
+            res = client.storage.from_(bucket_name).upload(
+                file=f,
+                path=destination_path,
+                file_options={"content-type": "image/jpeg"} # default to jpeg, Supabase can guess from extension too
+            )
+        
+        # Get public URL
+        url = client.storage.from_(bucket_name).get_public_url(destination_path)
+        return url
+    except Exception as e:
+        print(f"Failed to upload {file_path} to Supabase: {e}")
+        return None

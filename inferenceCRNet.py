@@ -190,21 +190,31 @@ def get_prediction(file):
             x = random.randint(1,100000) 
             density = 'static/density_map'+str(x)+'.jpg' 
             plt.imsave(density, output.detach().cpu().numpy()[0][0]) 
+            
+            try:
+                from drishti.backend.supabase_client import upload_to_storage
+                import os
+                density_url = upload_to_storage(density)
+                if density_url:
+                    os.remove(density)
+                    density = density_url
+            except Exception as e:
+                pass
                 
             cv2.putText(frame, "Count:" + str(prediction), (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-           
-            #img1 = cv2.convertScaleAbs(output.detach().cpu().numpy()[0][0], alpha=(255.0))
-            #cv2.imshow("dst",img1)
-      
-
-
-
-   
-
+            
             org_img = 'static/org_img.jpg' 
-
-    
             cv2.imwrite(org_img, frame)
+            
+            try:
+                from drishti.backend.supabase_client import upload_to_storage
+                import os
+                org_url = upload_to_storage(org_img)
+                if org_url:
+                    os.remove(org_img)
+                    org_img = org_url
+            except Exception as e:
+                pass
 
 #--------------------------------------------------
 #--------------------------------------------------
@@ -280,6 +290,16 @@ def get_prediction(file):
         x = random.randint(1,100000) 
         density = 'static/density_map'+str(x)+'.jpg' 
         plt.imsave(density, output.detach().cpu().numpy()[0][0]) 
+
+        try:
+            from drishti.backend.supabase_client import upload_to_storage
+            import os
+            density_url = upload_to_storage(density)
+            if density_url:
+                os.remove(density)
+                density = density_url
+        except Exception as e:
+            print(f"Failed to upload CRNet density to Supabase: {e}")
         
         # Cleanup
         del img, output

@@ -6,6 +6,8 @@ import asyncio
 import json
 import logging
 import os
+import time
+import uuid
 from datetime import datetime
 from typing import Optional
 
@@ -13,6 +15,7 @@ from fastapi import APIRouter, HTTPException
 
 from .schemas import AlertAcknowledge, AlertOut, AlertType, ManualAlertRequest
 from . import supabase_client as db
+from .notifications import send_sms_alert, send_voice_alert
 
 logger = logging.getLogger("drishti.alerts")
 
@@ -26,6 +29,13 @@ ALERT_THRESHOLD: int = int(os.getenv("ALERT_THRESHOLD", "500"))
 
 # SSE subscribers for alert push
 _alert_subscribers: list[asyncio.Queue] = []
+
+# Cooldown for notifications (5 minutes)
+_last_alert_times = {
+    "warning": 0.0,
+    "critical": 0.0
+}
+COOLDOWN_SECONDS = 300
 
 
 def get_threshold() -> int:
@@ -86,11 +96,39 @@ async def evaluate_count(
     if count_value <= threshold:
         return None
 
-    # Determine alert type
+    # Determine alert type and handle escalation
+    sms_dispatch_id = None
+    current_time = time.time()
+    
     if count_value > threshold * 1.5:
-        alert_type = AlertType.escalated
+        alert_type = AlertType.critical
+        if current_time - _last_alert_times["critical"] > COOLDOWN_SECONDS:
+            msg = f"Critical alert! Crowd count has reached {count_value}, exceeding the critical limit of {int(threshold * 1.5)}."
+            sms_dispatch_id = await asyncio.to_thread(send_voice_alert, msg)
+            if not sms_dispatch_id:
+                sms_dispatch_id = f"CALL-SIM-{uuid.uuid4().hex[:8].upper()}"
+            _last_alert_times["critical"] = current_time
+            logger.warning(
+                f"[VOICE ESCALATION] Crowd count of {count_value} exceeds critical limit "
+                f"({threshold * 1.5:.0f}). Dispatched Voice Call. ID: {sms_dispatch_id}"
+            )
+        else:
+            logger.info("Critical threshold exceeded, but voice call is on cooldown.")
+            
     elif count_value > threshold:
         alert_type = AlertType.warning
+        if current_time - _last_alert_times["warning"] > COOLDOWN_SECONDS:
+            msg = f"DRISHTI Warning: Crowd count is {count_value} (Threshold: {threshold}). Check dashboard immediately."
+            sms_dispatch_id = await asyncio.to_thread(send_sms_alert, msg)
+            if not sms_dispatch_id:
+                sms_dispatch_id = f"SMS-SIM-{uuid.uuid4().hex[:8].upper()}"
+            _last_alert_times["warning"] = current_time
+            logger.warning(
+                f"[SMS ESCALATION] Crowd count of {count_value} exceeds warning limit "
+                f"({threshold}). Dispatched SMS. ID: {sms_dispatch_id}"
+            )
+        else:
+            logger.info("Warning threshold exceeded, but SMS is on cooldown.")
     else:
         return None
 
@@ -101,6 +139,7 @@ async def evaluate_count(
             alert_type=alert_type.value,
             threshold_value=threshold,
             count_value=count_value,
+            sms_dispatch_id=sms_dispatch_id,
         )
     except Exception as e:
         logger.warning(f"Failed to insert alert to Supabase: {e}")
@@ -109,6 +148,7 @@ async def evaluate_count(
             "alert_type": alert_type.value,
             "threshold_value": threshold,
             "count_value": count_value,
+            "sms_dispatch_id": sms_dispatch_id,
             "created_at": datetime.utcnow().isoformat(),
         }
 

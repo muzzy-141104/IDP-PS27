@@ -20,36 +20,35 @@ export default function StatCard({ icon, label, value, trend, trendValue, color 
   }
 
   const trendColors: Record<string, string> = {
-    up: 'text-red-400',
-    down: 'text-green-400',
+    up: 'text-rose-400',
+    down: 'text-emerald-400',
     stable: 'text-[var(--drishti-text-dim)]',
   }
 
   const trendIcons: Record<string, string> = {
-    up: '↑',
-    down: '↓',
-    stable: '→',
+    up: '▲',
+    down: '▼',
+    stable: '■',
   }
 
   return (
-    <div className="glass p-4 hover:scale-[1.02] transition-transform duration-300">
+    <div className="tech-card bg-[#0b0c13] hover:border-indigo-500/20 hover:shadow-[0_0_15px_rgba(99,102,241,0.05)] transition-all duration-300">
       <div className="flex items-start justify-between">
-        <div className={`p-2 rounded-xl bg-gradient-to-br ${colorMap[color] || colorMap.indigo} bg-opacity-20`}
-          style={{ background: `linear-gradient(135deg, ${color === 'indigo' ? 'rgba(99,102,241,0.15)' : color === 'cyan' ? 'rgba(6,182,212,0.15)' : color === 'green' ? 'rgba(34,197,94,0.15)' : color === 'red' ? 'rgba(239,68,68,0.15)' : color === 'yellow' ? 'rgba(234,179,8,0.15)' : 'rgba(168,85,247,0.15)'} 0%, transparent 100%)` }}>
+        <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 text-[var(--drishti-text-muted)]">
           {icon}
         </div>
         {trend && (
-          <div className={`flex items-center gap-0.5 text-xs ${trendColors[trend]}`}>
+          <div className={`flex items-center gap-1 font-mono text-[10px] ${trendColors[trend]}`}>
             <span>{trendIcons[trend]}</span>
             {trendValue && <span>{trendValue}</span>}
           </div>
         )}
       </div>
-      <div className="mt-3">
-        <p className="text-2xl font-bold tabular-nums text-[var(--drishti-text)]">
+      <div className="mt-4">
+        <p className="text-3xl font-extrabold tracking-tight font-mono text-[var(--drishti-text)]">
           {typeof value === 'number' ? value.toLocaleString() : value}
         </p>
-        <p className="text-xs text-[var(--drishti-text-muted)] mt-0.5">{label}</p>
+        <p className="text-[10px] uppercase tracking-wider text-[var(--drishti-text-muted)] mt-1 font-semibold">{label}</p>
       </div>
     </div>
   )

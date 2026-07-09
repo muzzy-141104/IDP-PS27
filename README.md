@@ -1,72 +1,87 @@
-# Crowd-Counting-Platform
+# DRISHTI Surveillance Platform
 
-A state-of-the-art platform that implements 4 powerful crowd counting algorithms (YOLO-CROWD, FIDTM, P2PNet, and CSRNet). This platform allows users to predict the number of people in images and videos with high accuracy.
+> **D**ensity **R**ecognition and **I**ntelligent **S**urveillance for **H**azard **T**hreshold **I**dentification
+
+DRISHTI is a real-time crowd density monitoring and hazard detection system. It leverages state-of-the-art computer vision models (YOLO-CROWD & CSRNet) to automatically count crowds, logs all detection data to a cloud database (Supabase), and triggers instant visual and simulated SMS notifications when crowd counts exceed configurable safety thresholds.
+
+---
 
 ## 🚀 Key Features
-- **4 Advanced Algorithms**:
-  - **YOLO-CROWD**: Fast and accurate object detection-based counting (Supports bounding boxes).
-  - **CSRNet**: High-quality density map estimation for dense crowds.
-  - **FIDTM**: Focal Inverse Distance Transform Map for robust localization.
-  - **P2PNet**: Purely point-based framework for crowd counting and localization.
-- **Web Interface**: Easy-to-use Flask-based web interface.
-- **Support for Images & Videos**: Upload `.jpg`, `.jpeg`, `.png`, and `.mp4` files.
-- **Real-time Processing**: Optimized for performance on modern hardware.
 
-## 📸 Screenshots
-
-### Home Page
-![crowdcounting-website](https://github.com/zaki1003/Crowd-Counting-Platform/assets/65148928/f3f1211a-18c5-4481-9601-bfe0aadadb2d)
-
-### Prediction with YOLO-CROWD
-![YOLO-Result](https://github.com/zaki1003/Crowd-Counting-Platform/assets/65148928/b9bbb1b1-2ddd-4ab1-9b0e-0583c2e4e4b0)
+* **Dual AI Architectures**:
+  * **YOLO-CROWD** (`yolo-crowd.pt`): Fast object-detection-based counting, drawing individual bounding boxes. Best for sparse to medium crowds.
+  * **CSRNet** (`modelCRNet.pt`): Dilated CNN density map estimator. Best for highly congested dense crowds (1000+ people).
+* **Surveillance Operator Dashboard**: Modern Next.js frontend styled like a premium security command center console.
+* **Dynamic Safety Thresholds**: Configurable crowd thresholds with animated indicators and real-time status updates.
+* **Advanced Alert Console**: Instant browser pushes and simulated SMS dispatch escalation when limits are breached.
+* **Server-Sent Events (SSE)**: Real-time backend streaming of counts and alerts without page polling.
+* **Interactive Heatmaps**: Precision zoom and pan controls for color-coded crowd density heatmaps.
 
 ---
 
 ## 🛠️ Getting Started
 
 ### 1. Clone the Repository
-This project uses **Git LFS** (Large File Storage) to manage model weights. Make sure you have Git LFS installed before cloning.
-
+This project uses **Git LFS** (Large File Storage) to manage model weights. Make sure you have Git LFS installed:
 ```bash
-# Install Git LFS
 git lfs install
-
-# Clone the repo
 git clone https://github.com/muzzy-141104/IDP-PS27.git
 cd IDP-PS27
 ```
 
-### 2. Install Requirements
-```bash
-pip install -r requirements.txt
-```
+### 2. Configure Database & Env (Supabase)
+Create a Supabase project and run the SQL scripts located in:
+* [001_init.sql](file:///d:/Crowd-Counting-Platform/drishti/supabase/migrations/001_init.sql)
+* [002_rls_policies.sql](file:///d:/Crowd-Counting-Platform/drishti/supabase/migrations/002_rls_policies.sql)
 
-### 3. Models
-The core models are included in the repository via Git LFS:
-- `yolo-crowd.pt` (YOLO Weights)
-- `modelCRNet.pt` (CSRNet Weights)
-- `yolo-crowd.engine` (TensorRT optimized YOLO)
-
-**Note:** For FIDTM and P2PNet, manual download might be required if the LFS quota is exceeded:
-- [FIDTM Weights](https://drive.google.com/file/d/1drjYZW7hp6bQI39u7ffPYwt4Kno9cLu8/view?usp=sharing)
-- [P2PNet Weights](https://drive.google.com/file/d/1-189sscpNZBFaSHOz7dnEgAaFeUALiow/view?usp=sharing)
-
-### 4. Run the Application
-```bash
-python app.py
-```
-Open your browser and navigate to `http://localhost:8080`.
+Configure the environment files:
+* **Backend Env**: Create `drishti/backend/.env` with your Supabase credentials:
+  ```env
+  SUPABASE_URL=https://your-project.supabase.co
+  SUPABASE_KEY=your-anon-or-service-role-key
+  ALERT_THRESHOLD=500
+  ```
+* **Frontend Env**: Create `drishti/frontend/.env.local` with:
+  ```env
+  NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+  NEXT_PUBLIC_API_URL=http://localhost:8000
+  ```
 
 ---
 
-## 📖 How to Use
+## 🏃 Running the Application
 
-1. **Upload**: Select an image or video file using the "Import Image or Video" button.
-2. **Method**: Choose your preferred counting method from the dropdown (e.g., **YOLO-CROWD** for detection or **CSRNet** for density).
-3. **Count**: Click the "Count" button to process the file.
-4. **Results**:
-   - For **YOLO-CROWD**, you will see the image with bounding boxes around detected people and the final count.
-   - For **Density models** (CSRNet, FIDTM), you will see a colorized density map indicating crowd concentration.
+### 1. Start the FastAPI Backend
+```bash
+pip install -r requirements.txt
+uvicorn drishti.backend.main:app --reload --port 8000
+```
+API docs will be available at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### 2. Start the Next.js Frontend
+```bash
+cd drishti/frontend
+npm install
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your web browser.
+
+---
+
+## 📖 Project Structure
+
+```
+drishti/
+├── backend/               # FastAPI Backend Router, Managers, and SSE Pipelines
+│   ├── main.py            # API entry point
+│   ├── count_ws.py        # SSE streams & media upload inference
+│   └── alert_manager.py   # Safety threshold evaluation & SMS simulator
+├── frontend/              # Next.js 16 (App Router) + React 19 Frontend Dashboard
+│   ├── src/components/    # MediaUpload, AlertConsole, LiveCounter, Sidebar
+│   └── src/app/           # Dashboard Page, Alerts Table, Heatmap Zoom View
+└── supabase/              # PostgreSQL Database Init Migrations
+```
 
 ---
 

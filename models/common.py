@@ -1,6 +1,7 @@
 # YOLOv5 common modules
 
 import math
+from copy import copy
 from pathlib import Path
 
 import numpy as np
@@ -813,7 +814,7 @@ class DetectMultiBackend:
         # Load model
         if isinstance(weights, str) and weights.endswith('.pt'):
             # Load from .pt file (trained model)
-            ckpt = torch.load(weights, map_location=device)
+            ckpt = torch.load(weights, map_location=device, weights_only=False)
             if 'model' in ckpt:
                 self.model = ckpt['model'].float()
             else:

@@ -48,18 +48,17 @@ export default function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-[72px] glass-strong flex flex-col items-center py-6 z-50"
-      style={{ borderRadius: '0 20px 20px 0' }}>
+    <aside className="fixed left-0 top-0 h-screen w-[68px] bg-[#08090f] border-r border-[var(--drishti-border)] flex flex-col items-center py-6 z-50">
       {/* Logo */}
-      <div className="mb-8 relative">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-          D
+      <div className="mb-8 relative flex items-center justify-center">
+        <div className="w-9 h-9 rounded bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center text-white font-extrabold text-sm tracking-wider border border-white/10 shadow-[0_0_15px_rgba(79,70,229,0.25)]">
+          DR
         </div>
-        <div className="absolute -bottom-1 -right-1 status-dot live" />
+        <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-[#08090f]" />
       </div>
 
       {/* Navigation */}
-      <nav className="flex flex-col items-center gap-2 flex-1">
+      <nav className="flex flex-col items-center gap-3 flex-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href
           return (
@@ -68,21 +67,21 @@ export default function Sidebar() {
               href={item.href}
               id={`nav-${item.name.toLowerCase()}`}
               className={`
-                relative w-11 h-11 rounded-xl flex items-center justify-center
-                transition-all duration-300 group
+                relative w-10 h-10 rounded flex items-center justify-center
+                transition-all duration-200 group border
                 ${isActive
-                  ? 'bg-indigo-500/20 text-indigo-400 shadow-lg shadow-indigo-500/10'
-                  : 'text-[var(--drishti-text-muted)] hover:text-[var(--drishti-text)] hover:bg-white/5'
+                  ? 'bg-indigo-600/10 text-indigo-400 border-indigo-500/30 shadow-[inset_0_0_8px_rgba(99,102,241,0.05)]'
+                  : 'text-[var(--drishti-text-muted)] border-transparent hover:text-[var(--drishti-text)] hover:bg-white/[0.02]'
                 }
               `}
               title={item.name}
             >
               {item.icon}
               {isActive && (
-                <div className="absolute left-0 w-[3px] h-5 rounded-r-full bg-indigo-500" />
+                <div className="absolute left-0 w-0.5 h-4 bg-indigo-500" />
               )}
               {/* Tooltip */}
-              <span className="absolute left-full ml-3 px-2 py-1 rounded-md bg-[var(--drishti-surface-2)] text-xs text-[var(--drishti-text)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-[var(--drishti-border)]">
+              <span className="absolute left-full ml-3 px-2.5 py-1 rounded bg-[#0c0d14] text-[10px] uppercase tracking-wider font-bold text-[var(--drishti-text)] opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap border border-[var(--drishti-border)] shadow-xl z-[99]">
                 {item.name}
               </span>
             </Link>
@@ -91,9 +90,9 @@ export default function Sidebar() {
       </nav>
 
       {/* Status indicator */}
-      <div className="mt-auto flex flex-col items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center" title="System Online">
-          <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+      <div className="mt-auto flex flex-col items-center">
+        <div className="w-8 h-8 rounded border border-[var(--drishti-border)] bg-white/[0.01] flex items-center justify-center" title="System Online">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
         </div>
       </div>
     </aside>

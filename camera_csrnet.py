@@ -32,7 +32,8 @@ class VideoCamera(object):
         if (fileName ==''):
             self.video = cv2.VideoCapture(0)
         else:  
-            self.video = cv2.VideoCapture(fileName)   
+            self.video = cv2.VideoCapture(fileName)
+            self.video.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 #        self.video = cv2.resize(self.video,(840,640))
         # If you decide to use video.mp4, you must have this file in the folder
         # as the main.py.
@@ -81,60 +82,20 @@ class VideoCamera(object):
             
             output = model(img.unsqueeze(0))
             prediction = int(output.detach().cpu().sum().numpy())
+            
+            try:
+                from drishti.backend.count_ws import update_latest_count
+                update_latest_count(int(prediction), "csrnet", None, "stream")
+            except ImportError:
+                pass
+            except Exception as e:
+                print("Failed to emit live count:", e)
+
             x = random.randint(1,100000) 
             density = 'static/density_map'+str(x)+'.jpg' 
             plt.imsave(density, output.detach().cpu().numpy()[0][0]) 
                 
             cv2.putText(frame, "Count:" + str(prediction), (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-           
-     
-  
-   
-     
 
-      
-
-            org_img = 'static/org_img.jpg' 
-
-    
-            cv2.imwrite(org_img, frame)
-
-#--------------------------------------------------
-#--------------------------------------------------
-            image_names=[]
-
-            image_names = [org_img,density ]
-            images = []
-            max_width = 0 # find the max width of all the images
-            total_height = 0 # the total height of the images (vertical stacking)
-
-            for name in image_names:
-        # open all images and find their sizes
-        
-
-                images.append(   cv2.resize( cv2.imread(name), (1200,450)  )  )
-          #  images.append(cv2.imread(name))
-                if images[-1].shape[1] > max_width:
-                    max_width = images[-1].shape[1]
-                total_height += images[-1].shape[0]
-
-        # create a new array with a size large enough to contain all the images
-            final_image = np.zeros((total_height,max_width,3),dtype=np.uint8)
-
-            current_y = 0 # keep track of where your current image was last placed in the y coordinate
-            for image in images:
-                # add an image to the final array and increment the y coordinate
-                final_image[current_y:image.shape[0]+current_y,:image.shape[1],:] = image
-                current_y += image.shape[0]
-
-
-     
-        # We are using Motion JPEG, but OpenCV defaults to capture raw images,
-        # so we must encode it into JPEG in order to correctly display the
-        # video stream.
-            ret, jpeg = cv2.imencode('.jpg', final_image)
-        
-        
-        
-        
+            ret, jpeg = cv2.imencode('.jpg', frame)
             return jpeg.tobytes()

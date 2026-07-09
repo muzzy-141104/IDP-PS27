@@ -6,6 +6,7 @@ import HeatmapViewer from './HeatmapViewer'
 
 interface MediaUploadProps {
   model: string
+  threshold: number
   onResult?: (result: { count: number; density_path?: string; original_path?: string; alert?: unknown }) => void
 }
 
@@ -13,7 +14,7 @@ const MAX_FILE_SIZE_MB = 200
 
 type ProcessingStep = 'uploading' | 'extracting' | 'analyzing' | null
 
-export default function MediaUpload({ model, onResult }: MediaUploadProps) {
+export default function MediaUpload({ model, threshold, onResult }: MediaUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [step, setStep] = useState<ProcessingStep>(null)
@@ -134,7 +135,7 @@ export default function MediaUpload({ model, onResult }: MediaUploadProps) {
   }
 
   const severity = result && result.count >= 0
-    ? result.count > 750 ? 'critical' : result.count > 500 ? 'warning' : 'normal'
+    ? result.count > threshold * 1.5 ? 'critical' : result.count > threshold ? 'warning' : 'normal'
     : null
 
   const severityColors: Record<string, string> = {
@@ -144,7 +145,7 @@ export default function MediaUpload({ model, onResult }: MediaUploadProps) {
   }
 
   return (
-    <div className="glass p-5 h-full flex flex-col" id="media-upload">
+    <div className="tech-card bg-[#0b0c13] h-full flex flex-col" id="media-upload">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -232,6 +233,7 @@ export default function MediaUpload({ model, onResult }: MediaUploadProps) {
           <div className="h-full flex flex-col gap-3">
             {/* Media preview */}
             <div className="relative flex-1 min-h-0 rounded-xl overflow-hidden bg-black/30">
+              {isProcessing && step === 'analyzing' && <div className="scan-line" />}
               {fileType === 'video' ? (
                 <video
                   ref={videoRef}

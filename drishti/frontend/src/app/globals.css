@@ -5,26 +5,26 @@
 /* ------------------------------------------------------------------ */
 
 :root {
-  /* Primary palette */
-  --drishti-bg: #0a0a0f;
-  --drishti-surface: #12121a;
-  --drishti-surface-2: #1a1a2e;
-  --drishti-border: rgba(255, 255, 255, 0.06);
-  --drishti-border-hover: rgba(255, 255, 255, 0.12);
+  /* Primary palette - Tactical Slate & Charcoal */
+  --drishti-bg: #06060a;
+  --drishti-surface: #0c0d14;
+  --drishti-surface-2: #141622;
+  --drishti-border: rgba(255, 255, 255, 0.05);
+  --drishti-border-hover: rgba(99, 102, 241, 0.2);
 
-  /* Accent colours */
-  --drishti-accent: #6366f1;       /* Indigo */
-  --drishti-accent-glow: rgba(99, 102, 241, 0.25);
-  --drishti-green: #22c55e;
-  --drishti-yellow: #eab308;
-  --drishti-red: #ef4444;
+  /* Accent colours - Bright tactical neon */
+  --drishti-accent: #4f46e5;       /* Sharp Indigo */
+  --drishti-accent-glow: rgba(79, 70, 229, 0.15);
+  --drishti-green: #10b981;        /* Emerald */
+  --drishti-yellow: #f59e0b;       /* Amber */
+  --drishti-red: #f43f5e;          /* Rose */
   --drishti-orange: #f97316;
   --drishti-cyan: #06b6d4;
 
   /* Text */
-  --drishti-text: #f0f0f5;
-  --drishti-text-muted: #8b8b9e;
-  --drishti-text-dim: #555566;
+  --drishti-text: #f3f4f6;
+  --drishti-text-muted: #9ca3af;
+  --drishti-text-dim: #4b5563;
 }
 
 /* ------------------------------------------------------------------ */
@@ -34,32 +34,82 @@
 body {
   background: var(--drishti-bg);
   color: var(--drishti-text);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 /* ------------------------------------------------------------------ */
-/* Glassmorphism cards                                                 */
+/* Glassmorphism & Tactical Cards                                     */
 /* ------------------------------------------------------------------ */
 
 .glass {
-  background: rgba(18, 18, 26, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(12, 13, 20, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--drishti-border);
-  border-radius: 16px;
+  border-radius: 12px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-left-radius: 4px;
+  pointer-events: none;
 }
 
 .glass:hover {
   border-color: var(--drishti-border-hover);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 0 12px rgba(99, 102, 241, 0.03);
 }
 
 .glass-strong {
-  background: rgba(26, 26, 46, 0.85);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 1px solid var(--drishti-border);
-  border-radius: 20px;
+  background: rgba(12, 13, 20, 0.9);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+}
+
+/* Premium Tactical Border Card */
+.tech-card {
+  position: relative;
+  background: rgba(10, 11, 18, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.02);
+}
+
+.tech-card::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 12px;
+  height: 12px;
+  border-top: 2px solid var(--drishti-accent);
+  border-left: 2px solid var(--drishti-accent);
+  border-top-left-radius: 4px;
+}
+
+.tech-card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 12px;
+  height: 12px;
+  border-bottom: 2px solid var(--drishti-accent);
+  border-right: 2px solid var(--drishti-accent);
+  border-bottom-right-radius: 4px;
 }
 
 /* ------------------------------------------------------------------ */
@@ -67,10 +117,12 @@ body {
 /* ------------------------------------------------------------------ */
 
 .gradient-text {
-  background: linear-gradient(135deg, #6366f1 0%, #06b6d4 50%, #22c55e 100%);
+  background: linear-gradient(135deg, #818cf8 0%, #22d3ee 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  font-weight: 800;
+  letter-spacing: -0.025em;
 }
 
 .gradient-border {
@@ -83,7 +135,7 @@ body {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, #6366f1, #06b6d4, #22c55e);
+  background: linear-gradient(135deg, #4f46e5, #06b6d4);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
@@ -91,21 +143,21 @@ body {
 }
 
 /* ------------------------------------------------------------------ */
-/* Animations                                                          */
+/* Animations & Laser Scanners                                         */
 /* ------------------------------------------------------------------ */
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px var(--drishti-accent-glow); }
-  50% { box-shadow: 0 0 40px var(--drishti-accent-glow), 0 0 60px rgba(99, 102, 241, 0.1); }
+  0%, 100% { box-shadow: 0 0 15px var(--drishti-accent-glow); }
+  50% { box-shadow: 0 0 30px var(--drishti-accent-glow), 0 0 45px rgba(79, 70, 229, 0.08); }
 }
 
 @keyframes count-up {
-  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes slide-in {
-  from { opacity: 0; transform: translateX(20px); }
+  from { opacity: 0; transform: translateX(12px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
@@ -114,25 +166,39 @@ body {
   to { opacity: 1; }
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+@keyframes scan {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
 }
 
 .animate-pulse-glow {
-  animation: pulse-glow 3s ease-in-out infinite;
+  animation: pulse-glow 2.5s ease-in-out infinite;
 }
 
 .animate-count-up {
-  animation: count-up 0.5s ease-out;
+  animation: count-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .animate-slide-in {
-  animation: slide-in 0.4s ease-out;
+  animation: slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .animate-fade-in {
-  animation: fade-in 0.6s ease-out;
+  animation: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Advanced Scan Line Laser Effect */
+.scan-line {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--drishti-accent), transparent);
+  box-shadow: 0 0 12px var(--drishti-accent), 0 0 20px rgba(99, 102, 241, 0.5);
+  animation: scan 3s linear infinite;
+  z-index: 10;
+  pointer-events: none;
 }
 
 /* ------------------------------------------------------------------ */
@@ -140,20 +206,20 @@ body {
 /* ------------------------------------------------------------------ */
 
 .alert-warning {
-  background: rgba(234, 179, 8, 0.1);
-  border-color: rgba(234, 179, 8, 0.3);
+  background: rgba(245, 158, 11, 0.04);
+  border: 1px solid rgba(245, 158, 11, 0.2);
   color: var(--drishti-yellow);
 }
 
 .alert-critical {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(244, 63, 94, 0.04);
+  border: 1px solid rgba(244, 63, 94, 0.2);
   color: var(--drishti-red);
 }
 
 .alert-escalated {
-  background: rgba(249, 115, 22, 0.1);
-  border-color: rgba(249, 115, 22, 0.3);
+  background: rgba(249, 115, 22, 0.04);
+  border: 1px solid rgba(249, 115, 22, 0.2);
   color: var(--drishti-orange);
 }
 
@@ -162,8 +228,8 @@ body {
 /* ------------------------------------------------------------------ */
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -172,7 +238,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--drishti-text-dim);
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -184,15 +250,15 @@ body {
 /* ------------------------------------------------------------------ */
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   display: inline-block;
 }
 
 .status-dot.live {
   background: var(--drishti-green);
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
   animation: pulse-glow 2s ease-in-out infinite;
 }
 

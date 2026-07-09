@@ -11,7 +11,8 @@ from typing import Generator
 import cv2
 import numpy as np
 
-from fastapi import APIRouter, HTTPException, Query
+import asyncio
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 
 logger = logging.getLogger("drishti.stream")
@@ -82,12 +83,17 @@ def _get_camera(model: str, source: str):
     return VideoCamera(source)
 
 
-def _mjpeg_generator(camera) -> Generator[bytes, None, None]:
+async def _mjpeg_generator(camera, request: Request):
     """Yield MJPEG frames from a VideoCamera instance."""
     try:
         while True:
+            if await request.is_disconnected():
+                logger.info("Client disconnected from stream")
+                break
+                
             try:
-                frame = camera.get_frame()
+                # Offload blocking synchronous get_frame call to thread pool
+                frame = await asyncio.to_thread(camera.get_frame)
             except (AttributeError, TypeError, Exception) as e:
                 # camera_csrnet.py / camera_yolo.py crash with AttributeError
                 # when video source can't provide a frame (frame is None -> frame.shape)
@@ -117,6 +123,7 @@ def _placeholder_generator() -> Generator[bytes, None, None]:
 @router.get("/stream/{model}")
 async def stream_video(
     model: str,
+    request: Request,
     source: str = Query("./demo.avi", description="Video file path or '0' for webcam"),
 ):
     """
@@ -128,12 +135,14 @@ async def stream_video(
     if model not in ("yolo", "csrnet"):
         raise HTTPException(status_code=400, detail="model must be 'yolo' or 'csrnet'")
 
+    is_network_url = source.startswith(("http://", "https://", "rtsp://"))
+
     # Resolve relative paths against project root
-    if source != "0" and not os.path.isabs(source):
+    if source != "0" and not is_network_url and not os.path.isabs(source):
         source = os.path.join(PROJECT_ROOT, source)
 
-    # For non-webcam sources, validate the video BEFORE loading the ML model
-    if source != "0" and not _is_valid_video(source):
+    # For non-webcam, non-network sources, validate the video BEFORE loading the ML model
+    if source != "0" and not is_network_url and not _is_valid_video(source):
         logger.warning(
             f"Video source invalid or too small: {source} "
             f"({os.path.getsize(source) if os.path.isfile(source) else 'missing'} bytes). "
@@ -151,6 +160,6 @@ async def stream_video(
         raise HTTPException(status_code=500, detail=f"Camera init failed: {e}")
 
     return StreamingResponse(
-        _mjpeg_generator(camera),
+        _mjpeg_generator(camera, request),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )

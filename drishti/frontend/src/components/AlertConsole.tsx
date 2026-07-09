@@ -92,7 +92,7 @@ export default function AlertConsole({ maxItems = 20 }: AlertConsoleProps) {
 
   const formatTime = (ts: string) => {
     try {
-      return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      return new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
     } catch {
       return ts
     }

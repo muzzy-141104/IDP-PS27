@@ -182,7 +182,8 @@ class VideoCamera(object):
         if (fileName ==''):
             self.video = cv2.VideoCapture(0)
         else:  
-            self.video = cv2.VideoCapture(fileName)   
+            self.video = cv2.VideoCapture(fileName)
+            self.video.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 #        self.video = cv2.resize(self.video,(840,640))
         # If you decide to use video.mp4, you must have this file in the folder
         # as the main.py.
@@ -298,6 +299,19 @@ class VideoCamera(object):
                         prediction = n.item()
                     else:
                         prediction = n
+                    
+                    try:
+                        from drishti.backend.count_ws import update_latest_count
+                        # Run event loop execution to properly evaluate the alert asynchronously
+                        # Wait, update_latest_count is sync, but the alert_manager is async
+                        # Actually, we just need to pass the raw count. The stream routing is separate.
+                        # Wait, `count_ws.update_latest_count` doesn't do async alerts directly, we can just push the count.
+                        update_latest_count(int(prediction), "yolo", None, "stream")
+                    except ImportError:
+                        pass
+                    except Exception as e:
+                        print("Failed to emit live count:", e)
+
                     img_to_draw = cv2.resize(im0, (1500,720))
                     cv2.putText(img_to_draw, 'Number of people=' + str(prediction), (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 

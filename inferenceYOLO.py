@@ -95,11 +95,11 @@ class LoadImages:
         if self.cap is not None:
             self.cap.release()
 class LoadScreenshots:
-    def __init__(self, path, img_size=640):
+    def __init__(self, path, img_size=640, *args, **kwargs):
         self.path = path
         self.img_size = img_size
 class LoadStreams:
-    def __init__(self, sources):
+    def __init__(self, sources, *args, **kwargs):
         self.sources = sources
 
 import logging
@@ -123,7 +123,7 @@ def check_requirements(requirements='requirements.txt', exclude=()):
     pass
 def colorstr(*input):
     return ''
-def increment_path(path, exist_ok=False, sep=''):
+def increment_path(path, exist_ok=False, sep='', *args, **kwargs):
     return path
 def scale_boxes(img1_shape, coords, img0_shape, ratio_pad=None):
     """Rescale coords (xyxy) from img1_shape to img0_shape."""
@@ -153,7 +153,7 @@ def xyxy2xywh(x):
     return y
 def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,
                         labels=(), max_det=1000):
-    return real_nms(prediction, conf_thres, iou_thres)
+    return real_nms(prediction, conf_thres, iou_thres, classes, agnostic, multi_label, labels)
 
 # Stub for Annotator
 class Annotator:
@@ -179,8 +179,11 @@ class Annotator:
 def colors(c, validate=True):
     return (0, 255, 0)
 
-def save_one_box(x, im, file='crop.jpg', gain=1.05, pad=10):
+def save_one_box(x, im, file='crop.jpg', gain=1.05, pad=10, *args, **kwargs):
     return im
+
+def print_args(*args, **kwargs):
+    pass
 
 from utils.torch_utils import select_device
 
@@ -207,7 +210,7 @@ def get_prediction_yolo(
         source=ROOT / 'data/images',  # file/dir/URL/glob/screen/0(webcam)
         data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
         imgsz=640,  # inference size (height, width) - use int, not tuple
-        conf_thres=0.25,  # confidence threshold
+        conf_thres=0.4,  # confidence threshold
         iou_thres=0.45,  # NMS IOU threshold
         max_det=1000,  # maximum detections per image
         device='',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
@@ -336,6 +339,16 @@ def get_prediction_yolo(
             	prediction = n
             cv2.putText(im0, 'Number of people=' + str(prediction), (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)	
             cv2.imwrite(density,im0)
+
+            try:
+                from drishti.backend.supabase_client import upload_to_storage
+                import os
+                density_url = upload_to_storage(density)
+                if density_url:
+                    os.remove(density)
+                    density = density_url
+            except Exception as e:
+                print(f"Failed to upload YOLO density to Supabase: {e}")
 
 
             # Save results (image with detections)

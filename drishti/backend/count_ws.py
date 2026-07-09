@@ -38,7 +38,7 @@ _latest_count: dict = {"count": 0, "model": "yolo", "timestamp": "", "threshold"
 _count_subscribers: list[asyncio.Queue] = []
 
 
-def update_latest_count(count: int, model: str, alert_type: Optional[str] = None):
+def update_latest_count(count: int, model: str, alert_type: Optional[str] = None, source_type: str = "upload"):
     global _latest_count
     _latest_count = {
         "count": count,
@@ -46,6 +46,7 @@ def update_latest_count(count: int, model: str, alert_type: Optional[str] = None
         "timestamp": datetime.utcnow().isoformat(),
         "threshold": get_threshold(),
         "alert_type": alert_type,
+        "source_type": source_type,
     }
     # Push to subscribers
     for q in list(_count_subscribers):
@@ -229,11 +230,25 @@ async def count_media(
     alert_type = alert.get("alert_type") if alert else None
     update_latest_count(count_value, model, alert_type)
 
+    # Upload original media to Supabase
+    original_url = None
+    if source_type != "stream":
+        try:
+            from .supabase_client import upload_to_storage
+            original_url = upload_to_storage(fpath)
+            if original_url:
+                os.remove(fpath) # Clean up local original file
+        except Exception as e:
+            logger.error(f"Failed to upload original media: {e}")
+            original_url = f"static/uploads/{fname}"
+    else:
+        original_url = f"static/uploads/{fname}"
+
     return {
         "count": count_value,
         "model_used": model,
         "source_type": source_type,
         "density_path": density,
-        "original_path": f"static/uploads/{fname}",
+        "original_path": original_url,
         "alert": alert,
     }
